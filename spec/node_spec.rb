@@ -12,7 +12,7 @@ RSpec.describe Node do
       expect(tree.to_s).to eq('((7 + ((3 - 2) x 5)) ÷ 6)')
     end
 
-    it 'calcualte the exact result' do
+    it 'calculate the exact result' do
       expect(tree.result).to eq(2)
     end
   end
