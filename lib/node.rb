@@ -58,3 +58,49 @@ end
 def val(value)
   Node.new('', value, nil, nil)
 end
+
+class Tokenizer
+  RULES = {
+    /\d+/ => :int,
+    /[+\-÷x]/ => :op,
+    /\(/ => :lparen,
+    /\)/ => :rparen
+  }
+
+  def initialize
+    @tokens = []
+  end
+
+  def parse(expression)
+    @input = StringScanner.new(expression)
+
+    until @input.eos?
+      @input.skip(/\s+/)
+      find_tokens
+    end
+
+    @tokens
+  end
+
+  private
+
+  def find_tokens
+    RULES.each do |regex, type|
+      token = @input.scan(regex)
+      @tokens << Token.new(type, token) if token
+    end
+  end
+end
+
+class Token
+  attr_reader :type
+
+  def initialize(type, value)
+    @type = type
+    @value = value
+  end
+
+  def value
+    @type == :int ? @value.to_i : @value
+  end
+end
