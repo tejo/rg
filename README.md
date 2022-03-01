@@ -7,4 +7,4 @@ Execute:
 To get everything going. Should work with most newish rubies as I've not specificed an explicit one.
 
 ## Usage
-    $ bundle exec rake test
+    $ bundle exec rspec
