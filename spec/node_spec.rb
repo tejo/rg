@@ -28,3 +28,64 @@ RSpec.describe Tokenizer do
     expect(tokenizer.parse('((7 + ((3 - 2) x 5)) ÷ 6)').map { |t| [t.type, t.value] }).to eq(expected_token)
   end
 end
+
+RSpec.describe Parser do
+  let(:parser) { Parser.new(tokens) }
+  let(:tokens) { Tokenizer.new.parse(expression) }
+
+  context 'no matching parens' do
+    let(:expression) { '((7 + ((3 - 2) x 5)) ÷ 6'  }
+    it 'raise an erorr' do
+      expect { parser }.to raise_error(ArgumentError)
+    end
+  end
+
+  context '#parse' do
+    def tokens(expression)
+      Tokenizer.new.parse(expression)
+    end
+    it 'correctly parses 1 + 2' do
+      expect(Parser.new(tokens('1 + 2')).parse).to eq({ deep_level: 1,
+                                                        operator: '+',
+                                                        type: :op,
+                                                        left: {
+                                                          deep_level: 1,
+                                                          type: :int, value: 1
+                                                        },
+                                                        right: {
+                                                          deep_level: 1,
+                                                          type: :int,
+                                                          value: 2
+                                                        } })
+    end
+
+    it 'correctly parses (1 + 2) x 3' do
+      expect(Parser.new(tokens('(1 + 2) x 3')).parse).to eq({
+                                                              deep_level: 2,
+                                                              type: :op,
+                                                              operator: 'x',
+                                                              left:
+                                                            {
+                                                              deep_level: 1,
+                                                              type: :op,
+                                                              operator: '+',
+                                                              left: {
+                                                                deep_level: 1,
+                                                                type: :int,
+                                                                value: 1
+                                                              },
+                                                              right: {
+                                                                deep_level: 1,
+                                                                type: :int,
+                                                                value: 2
+                                                              }
+                                                            },
+                                                              right: {
+                                                                deep_level: 2,
+                                                                type: :int,
+                                                                value: 3
+                                                              }
+                                                            })
+    end
+  end
+end
