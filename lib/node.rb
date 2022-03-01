@@ -38,3 +38,23 @@ class Node
     end
   end
 end
+
+def sum(left, right)
+  Node.new('+', nil, left, right)
+end
+
+def div(left, right)
+  Node.new('÷', nil, left, right)
+end
+
+def sub(left, right)
+  Node.new('-', nil, left, right)
+end
+
+def mul(left, right)
+  Node.new('x', nil, left, right)
+end
+
+def val(value)
+  Node.new('', value, nil, nil)
+end

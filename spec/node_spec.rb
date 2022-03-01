@@ -5,24 +5,7 @@ require 'node'
 RSpec.describe Node do
   context 'change calculator' do
     let(:tree) do
-      Node.new(
-        '÷',
-        nil,
-        Node.new(
-          '+',
-          nil,
-          Node.new('', 7, nil, nil),
-          Node.new(
-            'x',
-            nil,
-            Node.new('-', nil,
-                     Node.new('', 3, nil, nil),
-                     Node.new('', 2, nil, nil)),
-            Node.new('', 5, nil, nil)
-          )
-        ),
-        Node.new('', 6, nil, nil)
-      )
+      div(sum(val(7), mul(sub(val(3), val(2)), val(5))), val(6))
     end
 
     it 'prints the right expression' do
