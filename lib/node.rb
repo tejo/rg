@@ -60,15 +60,23 @@ def val(value)
 end
 
 class Tokenizer
+  attr_reader :tokens
+
   RULES = {
     /\d+/ => :int,
-    /[+\-÷x]/ => :op,
+    /[+]/ => :sum,
+    /-/ => :sub,
+    /x/ => :mul,
+    /÷/ => :div,
     /\(/ => :lparen,
     /\)/ => :rparen
-  }
+  }.freeze
 
-  def initialize
+  def initialize(input)
     @tokens = []
+    @current_token_index = 0
+    parse(input)
+    @tokens << Token.new(:eof, '')
   end
 
   def parse(expression)
@@ -78,8 +86,23 @@ class Tokenizer
       @input.skip(/\s+/)
       find_tokens
     end
+  end
 
-    @tokens
+  def get_next_token
+    if @return_previous_token
+      @return_previous_token = false
+      return @previous_token
+    end
+
+    token = @tokens[@current_token_index]
+    @current_token_index += 1
+
+    @previous_token = token
+    token
+  end
+
+  def revert
+    @return_previous_token = true
   end
 
   private
@@ -106,74 +129,86 @@ class Token
 end
 
 class Parser
-  LPAREN = '('
-  RPAREN = ')'
+  attr_reader :original_expression
+  def parse(input)
+    @original_expression = input
+    @lexer = Tokenizer.new(input)
 
-  def initialize(tokens)
-    @tokens = tokens
-    @deep_level = 0
-    @ast = {}
-    check_matching_parens
-  end
+    expression_value = expression
 
-  def check_matching_parens
-    raise ArgumentError, 'no matching parens' unless
-    @tokens.select { |t| t.value == LPAREN }.count == @tokens.select { |t| t.value == RPAREN }.count
-  end
-
-  def parse
-    @expressions = []
-    @tokens.each_index do |index|
-      @expressions << next_token(index)
+    token = @lexer.get_next_token
+    if token.type == :eof
+      expression_value
+    else
+      raise 'End expected'
     end
-
-    @expressions.compact!
-
-    deepest_level = @expressions.group_by { |x| x[:deep_level] }.keys.max
-
-    build_ast(deepest_level)
   end
 
-  def next_token(index)
-    token = @tokens[index]
+  def to_s
+    @original_expression
+  end
+
+  protected
+
+  def expression
+    component1 = factor
+
+    additive_operators = %i[sum sub]
+
+    token = @lexer.get_next_token
+    while additive_operators.include?(token.type)
+      component2 = factor
+
+      if token.type == :sum
+        component1 += component2
+      else
+        component1 -= component2
+      end
+
+      token = @lexer.get_next_token
+    end
+    @lexer.revert
+
+    component1
+  end
+
+  def factor
+    factor1 = number
+
+    multiplicative_operators = %i[mul div]
+
+    token = @lexer.get_next_token
+    while multiplicative_operators.include?(token.type)
+      factor2 = number
+
+      if token.type == :mul
+        factor1 *= factor2
+      else
+        factor1 /= factor2
+      end
+
+      token = @lexer.get_next_token
+    end
+    @lexer.revert
+
+    factor1
+  end
+
+  def number
+    token = @lexer.get_next_token
+
     case token.type
+    when :lparen
+      value = expression
+
+      expected_rparen = @lexer.get_next_token
+      raise 'Unbalanced parenthesis' unless expected_rparen.type == :rparen
     when :int
-      {
-        deep_level: @deep_level,
-        type: :int,
-        value: token.value
-      }
-    when :op
-      @deep_level += 1
-      {
-        deep_level: @deep_level,
-        type: :op,
-        operator: token.value,
-        left: next_token(index - 1),
-        right: next_token(index + 1)
-      }
+      value = token.value
     else
-      # noop
-    end
-  end
-
-  def build_ast(level)
-    if @exp.nil?
-      @exp = find_op(level)
-    else
-      @exp[:left] = find_op(level)
+      raise 'Not a number'
     end
 
-    return @exp if @exp[:left].is_a?(Hash) && @exp[:left].is_a?(Hash)
-
-    build_ast(level - 1)
-  end
-
-  def find_op(level)
-    @expressions.select { |e| e[:deep_level].to_i == level && e[:type] == :op }.first
-  end
-
-  def find_value(level)
-    @expressions.select { |e| e[:deep_level].to_i == level && e[:type] == :int }.first
+    value
   end
 end

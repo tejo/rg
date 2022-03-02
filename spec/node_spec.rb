@@ -3,7 +3,7 @@
 require 'node'
 
 RSpec.describe Node do
-  context 'change calculator' do
+  context 'original expression tree' do
     let(:tree) do
       div(sum(val(7), mul(sub(val(3), val(2)), val(5))), val(6))
     end
@@ -18,14 +18,31 @@ RSpec.describe Node do
   end
 end
 
+RSpec.describe Parser do
+  context 'improved expression tree' do
+    let(:parser) do
+     Parser.new
+    end
+
+    it 'prints the right expression' do
+      parser.parse('((7 + ((3 - 2) x 5)) ÷ 6)')
+      expect(parser.to_s).to eq('((7 + ((3 - 2) x 5)) ÷ 6)')
+    end
+
+    it 'calculate the exact result' do
+      expect(parser.parse('((7 + ((3 - 2) x 5)) ÷ 6)')).to eq(2)
+    end
+  end
+end
+
 RSpec.describe Tokenizer do
-  let(:tokenizer) { Tokenizer.new }
   let(:expected_token) do
-    [[:lparen, '('], [:lparen, '('], [:int, 7], [:op, '+'], [:lparen, '('], [:lparen, '('], [:int, 3], [:op, '-'],
-     [:int, 2], [:rparen, ')'], [:op, 'x'], [:int, 5], [:rparen, ')'], [:rparen, ')'], [:op, '÷'], [:int, 6], [:rparen, ')']]
+    [[:lparen, '('], [:lparen, '('], [:int, 7], [:sum, '+'], [:lparen, '('], [:lparen, '('], [:int, 3], [:sub, '-'],
+     [:int, 2], [:rparen, ')'], [:mul, 'x'], [:int, 5], [:rparen, ')'], [:rparen, ')'], [:div, '÷'], [:int, 6], [:rparen, ')'], [:eof, '']]
   end
   it 'finds the right tokens' do
-    expect(tokenizer.parse('((7 + ((3 - 2) x 5)) ÷ 6)').map { |t| [t.type, t.value] }).to eq(expected_token)
+    tokens = Tokenizer.new('((7 + ((3 - 2) x 5)) ÷ 6)').tokens
+    expect(tokens.map { |t| [t.type, t.value] }).to eq(expected_token)
   end
 end
 
@@ -34,58 +51,20 @@ RSpec.describe Parser do
   let(:tokens) { Tokenizer.new.parse(expression) }
 
   context 'no matching parens' do
-    let(:expression) { '((7 + ((3 - 2) x 5)) ÷ 6'  }
+    let(:expression) { '((7 + ((3 - 2) x 5)) ÷ 6' }
     it 'raise an erorr' do
       expect { parser }.to raise_error(ArgumentError)
     end
   end
 
   context '#parse' do
-    def tokens(expression)
-      Tokenizer.new.parse(expression)
-    end
+    let(:parser) { Parser.new }
     it 'correctly parses 1 + 2' do
-      expect(Parser.new(tokens('1 + 2')).parse).to eq({ deep_level: 1,
-                                                        operator: '+',
-                                                        type: :op,
-                                                        left: {
-                                                          deep_level: 1,
-                                                          type: :int, value: 1
-                                                        },
-                                                        right: {
-                                                          deep_level: 1,
-                                                          type: :int,
-                                                          value: 2
-                                                        } })
+      expect(parser.parse('1 + 2')).to eq(3)
     end
 
-    it 'correctly parses (1 + 2) x 3' do
-      expect(Parser.new(tokens('(1 + 2) x 3')).parse).to eq({
-                                                              deep_level: 2,
-                                                              type: :op,
-                                                              operator: 'x',
-                                                              left:
-                                                            {
-                                                              deep_level: 1,
-                                                              type: :op,
-                                                              operator: '+',
-                                                              left: {
-                                                                deep_level: 1,
-                                                                type: :int,
-                                                                value: 1
-                                                              },
-                                                              right: {
-                                                                deep_level: 1,
-                                                                type: :int,
-                                                                value: 2
-                                                              }
-                                                            },
-                                                              right: {
-                                                                deep_level: 2,
-                                                                type: :int,
-                                                                value: 3
-                                                              }
-                                                            })
+    it 'correctly parses ((7 + ((3 - 2) x 5)) ÷ 6)' do
+      expect(parser.parse('((7 + ((3 - 2) x 5)) ÷ 6)')).to eq(2)
     end
   end
 end
