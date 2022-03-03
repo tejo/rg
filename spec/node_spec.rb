@@ -18,6 +18,8 @@ RSpec.describe Node do
   end
 end
 
+# EBN rules parser https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form
+# based on https://lukaszwrobel.pl/blog/math-parser-part-1-introduction/
 RSpec.describe Parser do
   context 'improved expression tree' do
     let(:parser) do
@@ -31,6 +33,10 @@ RSpec.describe Parser do
 
     it 'calculate the exact result' do
       expect(parser.parse('((7 + ((3 - 2) x 5)) ÷ 6)')).to eq(2)
+    end
+
+    it 'respects operator priority' do
+      expect(parser.parse('3 x 10 ÷ 5')).to eq(6)
     end
   end
 end
